@@ -170,9 +170,13 @@ class minHeap{
                     }
                 }
             }
-            // else{
+        }
 
-            // }
+        void update(vector<Process> &h){
+            heap.emplace_back(heap[0]);
+            heap = {heap.begin()+1, heap.end()};
+
+            h = getHeap();
         }
 
         int deleteMin(vector<Process> &h){
@@ -261,6 +265,45 @@ class Scheduler{
 
         void RR(vector<Process> &Q, int n, int k){
             cout<<"Algorithm: Round Robin\n";
+
+            minHeap heap("RR");
+            unordered_map<int, int> m;
+            int flag=1;
+            vector<Process> h;
+
+            for(int t=1; t<=n; t++){
+                ofstream file;
+                file.open("status.txt", ios_base::app);
+
+                for(int i=1; i<=Q.size(); i++){
+                    if(Q[i].getArrivalTime() == t){
+                        heap.insert(Q[i]);
+                        file << prntf("|%4d |%11d |  Arrived |\n", t, Q[i].getProcessId());
+                    }
+                }
+
+                h = heap.getHeap();
+
+                if(t == flag){
+                    flag += min(k, h[0].getBurstTime());
+                    h[0] = heap.updateBurstTime(h[0].getBurstTime()-min(k, h[0].getBurstTime()));
+                    file << prntf("|%4d |%11d |  Running |\n", t, h[0].getProcessId());
+
+                    if(m[h[0].getProcessId()]==0){
+                        m[h[0].getProcessId()]=t;
+                    }
+
+                    if(h[0].getBurstTime() == 0 && flag <= n){
+                        Q[h[0].getProcessId()].update(flag, m[h[0].getProcessId()]);
+                        file << prntf("|%4d |%11d |   Exited |\n", flag, heap.deleteMin(h));
+                    }
+                    else{
+                        heap.update(h);
+                    }
+                }
+
+                file.close();
+            }
         }
 };
 
@@ -304,7 +347,7 @@ int main(){
     cout<<"Please select a Scheduling Algorithm:\n0. First Come First Serve (FCFS)\n1. Shortest Remaining Time First (SRTF)\n2. Round Robin (RR)\n";
     cin>>SchedulingAlgorithm;
 
-    if(SchedulingAlgorithm == 3){
+    if(SchedulingAlgorithm == 2){
         cout<<"Please enter Time Quantum for Round Robin (RR) Algoritm: ";
         cin>>TimeQuantum;
     }
