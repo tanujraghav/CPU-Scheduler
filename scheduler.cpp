@@ -57,6 +57,10 @@ class Process{
             return BurstTime;
         }
 
+        void setBurstTime(int x){
+            BurstTime = x;
+        }
+
         bool isReady() const{
             return CompletionTime == 0;
         }
@@ -118,13 +122,19 @@ class Process_Creator{
         }
 };
 
-class minHeap_FCFS{
+class minHeap{
 
     vector<Process> heap;
+    string str;
 
     public:
-        minHeap_FCFS(vector<Process> Q){
+        minHeap(string s){
+            str = s;
+        }
+
+        minHeap(vector<Process> Q, string s){
             heap = {Q.begin()+1, Q.end()};
+            str = s;
             heapify();
         }
 
@@ -136,12 +146,33 @@ class minHeap_FCFS{
             return heap;
         }
 
+        void insert(Process p){
+            heap.emplace_back(p);
+        }
+
+        Process updateBurstTime(int x){
+            heap[0].setBurstTime(x);
+            return heap[0];
+        }
+
         void heapify(){
-            for(int i=heap.size(); i>0; i--){
-                for(int idx = i-1; idx != 0 && (heap[parent(idx)].getArrivalTime() > heap[idx].getArrivalTime() || (heap[parent(idx)].getArrivalTime() == heap[idx].getArrivalTime() && heap[parent(idx)].getProcessId() > heap[idx].getProcessId())); idx = parent(idx)){
-                    swap(heap[parent(idx)], heap[idx]);
+            if(str == "FCFS"){
+                for(int i=heap.size(); i>0; i--){
+                    for(int idx = i-1; idx != 0 && (heap[parent(idx)].getArrivalTime() > heap[idx].getArrivalTime() || (heap[parent(idx)].getArrivalTime() == heap[idx].getArrivalTime() && heap[parent(idx)].getProcessId() > heap[idx].getProcessId())); idx = parent(idx)){
+                        swap(heap[parent(idx)], heap[idx]);
+                    }
                 }
             }
+            else if(str == "SRTF"){
+                for(int i=heap.size(); i>0; i--){
+                    for(int idx = i-1; idx != 0 && (heap[parent(idx)].getBurstTime() > heap[idx].getBurstTime() || (heap[parent(idx)].getBurstTime() == heap[idx].getBurstTime() && heap[parent(idx)].getProcessId() > heap[idx].getProcessId())); idx = parent(idx)){
+                        swap(heap[parent(idx)], heap[idx]);
+                    }
+                }
+            }
+            // else{
+
+            // }
         }
 
         int deleteMin(vector<Process> &h){
@@ -159,7 +190,9 @@ class minHeap_FCFS{
 class Scheduler{
     public:
         void FCFS(vector<Process> &Q, int n){
-            minHeap_FCFS heap(Q);
+            cout<<"Algorithm: First Come First Serve\n";
+
+            minHeap heap(Q, "FCFS");
             int flag=1;
             vector<Process> h = heap.getHeap();
 
@@ -189,11 +222,45 @@ class Scheduler{
         }
 
         void SRTF(vector<Process> &Q, int n){
-            cout<<"shortest remaining time first!";
+            cout<<"Algorithm: Shortest Remaining Time First\n";
+
+            minHeap heap("SRTF");
+            unordered_map<int, int> m;
+            vector<Process> h;
+
+            for(int t=1; t<=n; t++){
+                ofstream file;
+                file.open("status.txt", ios_base::app);
+
+                for(int i=1; i<=Q.size(); i++){
+                    if(Q[i].getArrivalTime() == t){
+                        heap.insert(Q[i]);
+                        file << prntf("|%4d |%11d |  Arrived |\n", t, Q[i].getProcessId());
+                    }
+                }
+
+                heap.heapify();
+                h = heap.getHeap();
+
+                if(h[0].getBurstTime()){
+                    h[0] = heap.updateBurstTime(h[0].getBurstTime()-1);
+                    file << prntf("|%4d |%11d |  Running |\n", t, h[0].getProcessId());
+
+                    if(m[h[0].getProcessId()]==0){
+                        m[h[0].getProcessId()]=t;
+                    }
+                }
+                else{
+                    Q[h[0].getProcessId()].update(t, m[h[0].getProcessId()]);
+                    file << prntf("|%4d |%11d |   Exited |\n", t, heap.deleteMin(h));
+                }
+
+                file.close();
+            }
         }
 
         void RR(vector<Process> &Q, int n, int k){
-            cout<<"round robin!";
+            cout<<"Algorithm: Round Robin\n";
         }
 };
 
